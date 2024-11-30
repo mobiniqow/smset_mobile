@@ -16,7 +16,6 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      // صفحه اولیه را به صفحه اسپلش تغییر می‌دهیم
       home: SplashScreen(), // صفحه اسپلش به عنوان صفحه ورودی
     );
   }
