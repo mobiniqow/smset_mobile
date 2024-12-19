@@ -10,14 +10,7 @@ class SplashScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.lightBlueAccent,
       body: Center(
-        child: Text(
-          "Welcome to Our App",
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
+        child:Column(),
       ),
     );
   }
@@ -25,7 +18,7 @@ class SplashScreen extends StatelessWidget {
   void _checkToken(BuildContext context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessToken = prefs.getString('access_token');
-    Future.delayed(Duration(seconds: 2), () {
+    Future.delayed(Duration(seconds: 1), () {
       if (accessToken != null) {
         Navigator.pushReplacement(
           context,

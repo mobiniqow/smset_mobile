@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProductPage extends StatefulWidget {
   const ProductPage({super.key});
@@ -24,18 +25,20 @@ class _ProductPageState extends State<ProductPage> {
     setState(() {
       _isLoading = true;
     });
-
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
+    print(accessToken);
     final response = await http.get(
-      Uri.parse('http://127.0.0.1:8000/api/products/'), // URL API
-      headers: {'Authorization': 'Bearer YOUR_ACCESS_TOKEN'}, // Token برای احراز هویت
+      Uri.parse('https://smset.ir/product/api/v1/product'), // URL API
+      headers: {'Authorization': 'Bearer $accessToken'}, // Token برای احراز هویت
     );
 
     if (response.statusCode == 200) {
-      List data = json.decode(response.body);
-      setState(() {
+      List data = json.decode(response.body)['results'];
         _products.clear();
         _products.addAll(data.map((e) => e as Map<String, dynamic>).toList());
         _isLoading = false;
+        setState(() {
       });
     } else {
       setState(() {
@@ -95,10 +98,12 @@ class _ProductPageState extends State<ProductPage> {
 
   // Create product API request
   Future<void> _createProduct(String name, String unit) async {
+    var prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
     final response = await http.post(
-      Uri.parse('http://127.0.0.1:8000/api/products/'),
+      Uri.parse('https://smset.ir/product/api/v1/product/'),
       headers: {
-        'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
+        'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
       },
       body: json.encode({
@@ -110,7 +115,7 @@ class _ProductPageState extends State<ProductPage> {
     if (response.statusCode == 201) {
       _fetchProducts(); // Refresh the product list
     } else {
-      throw Exception('Failed to create product');
+      throw Exception('Failed to create product ${response.statusCode} ${response.body}');
     }
   }
 
@@ -144,10 +149,12 @@ class _ProductPageState extends State<ProductPage> {
 
   // Delete product API request
   Future<void> _deleteProductApi(String productId) async {
+    var prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
     final response = await http.delete(
-      Uri.parse('http://127.0.0.1:8000/api/products/$productId/'),
+      Uri.parse('https://smset.ir/product/api/v1/product/$productId/'),
       headers: {
-        'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
+        'Authorization': 'Bearer $accessToken',
       },
     );
 
@@ -208,10 +215,12 @@ class _ProductPageState extends State<ProductPage> {
 
   // Update product API request
   Future<void> _updateProduct(String productId, String name, String unit) async {
+    var prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
     final response = await http.put(
-      Uri.parse('http://127.0.0.1:8000/api/products/$productId/'),
+      Uri.parse('https://smset.ir/product/api/v1/product/$productId/'),
       headers: {
-        'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
+        'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
       },
       body: json.encode({

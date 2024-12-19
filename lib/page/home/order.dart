@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:share_plus/share_plus.dart'; // برای اشتراک گذاری
+import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // برای اشتراک گذاری
 
 class OrderPage extends StatefulWidget {
   const OrderPage({super.key});
@@ -29,16 +30,18 @@ class _OrderPageState extends State<OrderPage> {
     setState(() {
       _isLoadingForms = true;
     });
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
 
     final response = await http.get(
-      Uri.parse('http://127.0.0.1:8000/api/productforms/'),
+      Uri.parse('https://smset.ir/product/api/v1/product_forms/'),
       headers: {
-        'Authorization': 'Bearer YOUR_ACCESS_TOKEN', // برای احراز هویت
+        'Authorization': 'Bearer $accessToken', // برای احراز هویت
       },
     );
 
     if (response.statusCode == 200) {
-      List data = json.decode(response.body);
+      List data = json.decode(response.body)['results'];
       setState(() {
         _forms.clear();
         _forms.addAll(data.map((e) => e as Map<String, dynamic>).toList());
@@ -58,15 +61,17 @@ class _OrderPageState extends State<OrderPage> {
       _isLoadingProducts = true;
     });
 
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
     final response = await http.get(
-      Uri.parse('http://127.0.0.1:8000/api/productforms/$formId/'),
+      Uri.parse('https://smset.ir/product/api/v1/product_forms/$formId/'),
       headers: {
-        'Authorization': 'Bearer YOUR_ACCESS_TOKEN', // برای احراز هویت
+        'Authorization': 'Bearer $accessToken', // برای احراز هویت
       },
     );
 
     if (response.statusCode == 200) {
-      final formData = json.decode(response.body);
+      final formData = json.decode(response.body)['results'];
       setState(() {
         _products = List<Map<String, dynamic>>.from(formData['items']);
         _isLoadingProducts = false;

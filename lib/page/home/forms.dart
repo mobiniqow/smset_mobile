@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProductFormPage extends StatefulWidget {
   const ProductFormPage({super.key});
@@ -11,9 +12,10 @@ class ProductFormPage extends StatefulWidget {
 
 class _ProductFormPageState extends State<ProductFormPage> {
   bool _isLoading = false;
+  bool _isLoadingProducts = false;
   List<Map<String, dynamic>> _forms = [];
   List<Map<String, dynamic>> _products = [];
-  bool _isLoadingProducts = false;
+  List<Map<String, dynamic>> _selectedProducts = [];
 
   @override
   void initState() {
@@ -27,15 +29,17 @@ class _ProductFormPageState extends State<ProductFormPage> {
       _isLoading = true;
     });
 
+    var prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
     final response = await http.get(
-      Uri.parse('http://127.0.0.1:8000/api/productforms/'),
+      Uri.parse('https://smset.ir/product/api/v1/product_forms/'),
       headers: {
-        'Authorization': 'Bearer YOUR_ACCESS_TOKEN', // برای احراز هویت
+        'Authorization': 'Bearer $accessToken', // for authentication
       },
     );
 
     if (response.statusCode == 200) {
-      List data = json.decode(response.body);
+      List data = json.decode(response.body)['results'];
       setState(() {
         _forms.clear();
         _forms.addAll(data.map((e) => e as Map<String, dynamic>).toList());
@@ -49,57 +53,75 @@ class _ProductFormPageState extends State<ProductFormPage> {
     }
   }
 
-  // Create a new product form
-  Future<void> _createForm(String name) async {
-    final response = await http.post(
-      Uri.parse('http://127.0.0.1:8000/api/productforms/'),
-      headers: {
-        'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({'name': name}),
-    );
+  // Fetch products for the current user
+  Future<void> _fetchProducts() async {
+    setState(() {
+      _isLoadingProducts = true;
+    });
+    var prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
 
-    if (response.statusCode == 201) {
-      _fetchForms(); // Refresh the forms list
-    } else {
-      throw Exception('Failed to create form');
-    }
-  }
-
-  // Delete a product form
-  Future<void> _deleteForm(String formId) async {
-    final response = await http.delete(
-      Uri.parse('http://127.0.0.1:8000/api/productforms/$formId/'),
+    final response = await http.get(
+      Uri.parse('https://smset.ir/product/api/v1/product/'),
       headers: {
-        'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
+        'Authorization': 'Bearer $accessToken',
       },
     );
 
-    if (response.statusCode == 204) {
-      _fetchForms(); // Refresh the forms list
+    if (response.statusCode == 200) {
+      List data = json.decode(response.body)['results'];
+      setState(() {
+        _products.clear();
+        _products.addAll(data.map((e) => e as Map<String, dynamic>).toList());
+        _isLoadingProducts = false;
+      });
     } else {
-      throw Exception('Failed to delete form');
+      setState(() {
+        _isLoadingProducts = false;
+      });
+      throw Exception('Failed to load products');
     }
   }
 
-  // Show a dialog to add product to form
-  Future<void> _addProductToForm(String formId) async {
-    final TextEditingController productIdController = TextEditingController();
-
+  Future<void> _showProductSelectionDialog(String formId) async {
+    // ابتدا محصولات را بارگذاری می‌کنیم
+    await _fetchProducts();
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Add Product to Form'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: productIdController,
-                decoration: const InputDecoration(labelText: 'Product ID'),
-              ),
-            ],
+          title: const Text('Select Products'),
+          content: _isLoadingProducts
+              ? const Center(child: CircularProgressIndicator())
+              : Container(
+            height: 290,
+            width: 190,
+            child: StatefulBuilder(
+              builder: (BuildContext context, setState) {
+                return ListView.builder(
+                  itemCount: _products.length,
+                  itemBuilder: (context, index) {
+                    final product = _products[index];
+                    bool isSelected = _selectedProducts
+                        .any((item) => item['id'] == product['id']);
+                    return CheckboxListTile(
+                      title: Text(product['name']),
+                      value: isSelected,
+                      onChanged: (bool? selected) {
+                        setState(() {
+                          if (selected == true) {
+                            _selectedProducts.add(product);
+                          } else {
+                            _selectedProducts.removeWhere(
+                                    (item) => item['id'] == product['id']);
+                          }
+                        });
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           ),
           actions: [
             TextButton(
@@ -110,13 +132,11 @@ class _ProductFormPageState extends State<ProductFormPage> {
             ),
             TextButton(
               onPressed: () async {
-                final productId = productIdController.text;
-                if (productId.isEmpty) return;
-
-                await _addProduct(formId, productId);
+                // ارسال محصولات انتخابی به فرم
+                await _addProductsToForm(formId);
                 Navigator.pop(context);
               },
-              child: const Text('Add Product'),
+              child: const Text('Save'),
             ),
           ],
         );
@@ -124,48 +144,29 @@ class _ProductFormPageState extends State<ProductFormPage> {
     );
   }
 
-  // Add product to form API request
-  Future<void> _addProduct(String formId, String productId) async {
+  Future<void> _addProductsToForm(String formId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
+
+    // استخراج شناسه‌های محصولات از لیست انتخاب شده
+    final List<String> productIds =
+    _selectedProducts.map((product) => product['id'].toString()).toList();
+
     final response = await http.post(
-      Uri.parse('http://127.0.0.1:8000/api/productforms/$formId/add_product/'),
+      Uri.parse(
+          'https://smset.ir/product/api/v1/product_forms/$formId/add_product/'),
       headers: {
-        'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
+        'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
       },
-      body: json.encode({'product_id': productId}),
+      body: json.encode({'product_ids': productIds}),
     );
 
     if (response.statusCode == 201) {
+      // پس از ارسال موفق، لیست فرم‌ها را دوباره بکشیم
       _fetchForms(); // Refresh the forms list
     } else {
-      throw Exception('Failed to add product');
-    }
-  }
-
-  // Show products of a form
-  Future<void> _fetchProductsForForm(String formId) async {
-    setState(() {
-      _isLoadingProducts = true;
-    });
-
-    final response = await http.get(
-      Uri.parse('http://127.0.0.1:8000/api/productforms/$formId/'),
-      headers: {
-        'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final formData = json.decode(response.body);
-      setState(() {
-        _products = List<Map<String, dynamic>>.from(formData['items']);
-        _isLoadingProducts = false;
-      });
-    } else {
-      setState(() {
-        _isLoadingProducts = false;
-      });
-      throw Exception('Failed to load products for form');
+      throw Exception('Failed to add products');
     }
   }
 
@@ -176,44 +177,38 @@ class _ProductFormPageState extends State<ProductFormPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
-        itemCount: _forms.length,
-        itemBuilder: (context, index) {
-          final form = _forms[index];
-          return ListTile(
-            title: Text(form['name']),
-            subtitle: Text('ID: ${form['id']}'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () {
-                    // Implement form edit functionality if needed
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () {
-                    _deleteForm(form['id']);
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    _addProductToForm(form['id']);
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.view_list),
-                  onPressed: () {
-                    _fetchProductsForForm(form['id']);
-                  },
-                ),
-              ],
+              itemCount: _forms.length,
+              itemBuilder: (context, index) {
+                final form = _forms[index];
+                return ListTile(
+                  title: Text(form['name']),
+                  subtitle: Text('ID: ${form['id']}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () {
+                          // Implement form edit functionality if needed
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () {
+                          _deleteForm(form['id']);
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add),
+                        onPressed: () {
+                          _showProductSelectionDialog(form['id']);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           final TextEditingController nameController = TextEditingController();
@@ -251,5 +246,43 @@ class _ProductFormPageState extends State<ProductFormPage> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  // Create a new product form
+  Future<void> _createForm(String name) async {
+    var prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
+    final response = await http.post(
+      Uri.parse('https://smset.ir/product/api/v1/product_forms/'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({'name': name}),
+    );
+
+    if (response.statusCode == 201) {
+      _fetchForms(); // Refresh the forms list
+    } else {
+      throw Exception('Failed to create form');
+    }
+  }
+
+  // Delete a product form
+  Future<void> _deleteForm(String formId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
+    final response = await http.delete(
+      Uri.parse('https://smset.ir/product/api/v1/product_forms/$formId/'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+
+    if (response.statusCode == 204) {
+      _fetchForms(); // Refresh the forms list
+    } else {
+      throw Exception('Failed to delete form');
+    }
   }
 }
