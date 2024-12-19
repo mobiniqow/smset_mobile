@@ -24,7 +24,7 @@ class _VerifyPageState extends State<VerifyPage> {
     });
 
     var response = await http.post(
-      Uri.parse('http://127.0.0.1:8000/account/api/v1/verify/'),
+      Uri.parse('https://smset.ir/account/api/v1/verify/'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
