@@ -23,6 +23,35 @@ class _OrderPageState extends State<OrderPage> {
   void initState() {
     super.initState();
     _fetchForms();
+    _fetchProducts();
+  }
+  Future<void> _fetchProducts() async {
+    setState(() {
+      _isLoadingProducts = true;
+    });
+
+    var prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
+    final response = await http.get(
+      Uri.parse('https://smset.ir/product/api/v1/product/'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      List data = json.decode(response.body)['results'];
+      setState(() {
+        _products.clear();
+        _products.addAll(data.map((e) => e as Map<String, dynamic>).toList());
+        _isLoadingProducts = false;
+      });
+    } else {
+      setState(() {
+        _isLoadingProducts = false;
+      });
+      throw Exception('Failed to fetch products');
+    }
   }
 
   // Fetch forms from the API
@@ -63,6 +92,8 @@ class _OrderPageState extends State<OrderPage> {
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessToken = prefs.getString('access_token');
+    print(accessToken);
+    print(formId);
     final response = await http.get(
       Uri.parse('https://smset.ir/product/api/v1/product_forms/$formId/'),
       headers: {
@@ -71,7 +102,7 @@ class _OrderPageState extends State<OrderPage> {
     );
 
     if (response.statusCode == 200) {
-      final formData = json.decode(response.body)['results'];
+      final formData = json.decode(response.body) ;
       setState(() {
         _products = List<Map<String, dynamic>>.from(formData['items']);
         _isLoadingProducts = false;

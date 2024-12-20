@@ -27,7 +27,6 @@ class _ProductPageState extends State<ProductPage> {
     });
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessToken = prefs.getString('access_token');
-    print(accessToken);
     final response = await http.get(
       Uri.parse('https://smset.ir/product/api/v1/product'), // URL API
       headers: {'Authorization': 'Bearer $accessToken'}, // Token برای احراز هویت
@@ -35,10 +34,10 @@ class _ProductPageState extends State<ProductPage> {
 
     if (response.statusCode == 200) {
       List data = json.decode(response.body)['results'];
-        _products.clear();
-        _products.addAll(data.map((e) => e as Map<String, dynamic>).toList());
+      _products.clear();
+      _products.addAll(data.map((e) => e as Map<String, dynamic>).toList());
+      setState(() {
         _isLoading = false;
-        setState(() {
       });
     } else {
       setState(() {
@@ -57,17 +56,17 @@ class _ProductPageState extends State<ProductPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Create Product'),
+          title: const Text('ایجاد محصول'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(labelText: 'Product Name'),
+                decoration: const InputDecoration(labelText: 'نام محصول'),
               ),
               TextField(
                 controller: unitController,
-                decoration: const InputDecoration(labelText: 'Unit'),
+                decoration: const InputDecoration(labelText: 'واحد'),
               ),
             ],
           ),
@@ -76,7 +75,8 @@ class _ProductPageState extends State<ProductPage> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text('Cancel'),
+              child: const Text('انصراف', style: TextStyle(color: Colors.white)),
+              style: TextButton.styleFrom(backgroundColor: Colors.red),
             ),
             TextButton(
               onPressed: () async {
@@ -88,7 +88,8 @@ class _ProductPageState extends State<ProductPage> {
                 await _createProduct(name, unit);
                 Navigator.pop(context);
               },
-              child: const Text('Create'),
+              child: const Text('ایجاد', style: TextStyle(color: Colors.white)),
+              style: TextButton.styleFrom(backgroundColor: Colors.green),
             ),
           ],
         );
@@ -125,21 +126,22 @@ class _ProductPageState extends State<ProductPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Confirm Deletion'),
-          content: const Text('Are you sure you want to delete this product?'),
+          title: const Text('تایید حذف'),
+          content: const Text('آیا از حذف این محصول اطمینان دارید؟'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text('Cancel'),
+              child: const Text('انصراف'),
             ),
             TextButton(
               onPressed: () async {
                 await _deleteProductApi(productId);
                 Navigator.pop(context);
               },
-              child: const Text('Delete'),
+              child: const Text('حذف'),
+              style: TextButton.styleFrom(backgroundColor: Colors.red),
             ),
           ],
         );
@@ -174,17 +176,17 @@ class _ProductPageState extends State<ProductPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Update Product'),
+          title: const Text('به روز رسانی محصول'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(labelText: 'Product Name'),
+                decoration: const InputDecoration(labelText: 'نام محصول'),
               ),
               TextField(
                 controller: unitController,
-                decoration: const InputDecoration(labelText: 'Unit'),
+                decoration: const InputDecoration(labelText: 'واحد'),
               ),
             ],
           ),
@@ -193,7 +195,7 @@ class _ProductPageState extends State<ProductPage> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text('Cancel'),
+              child: const Text('انصراف'),
             ),
             TextButton(
               onPressed: () async {
@@ -205,7 +207,7 @@ class _ProductPageState extends State<ProductPage> {
                 await _updateProduct(productId, name, unit);
                 Navigator.pop(context);
               },
-              child: const Text('Update'),
+              child: const Text('به روز رسانی'),
             ),
           ],
         );
@@ -239,40 +241,51 @@ class _ProductPageState extends State<ProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Product Page")),
+      appBar: AppBar(
+        title: const Text("صفحه محصولات"),
+        backgroundColor: Colors.deepPurple,
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
         itemCount: _products.length,
         itemBuilder: (context, index) {
           final product = _products[index];
-          return ListTile(
-            title: Text(product['name']),
-            subtitle: Text(product['unit']),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () {
-                    _showUpdateDialog(product['id'], product['name'], product['unit']);
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () {
-                    _deleteProduct(product['id']);
-                  },
-                ),
-              ],
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+            elevation: 5,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.blue, width: 1),
+            ),
+            child: ListTile(
+              title: Text(product['name'], style: TextStyle(fontFamily: 'ProductSans', fontSize: 18)),
+              subtitle: Text(product['unit'], style: TextStyle(fontFamily: 'ProductSans', color: Colors.grey)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.orange),
+                    onPressed: () {
+                      _showUpdateDialog(product['id'], product['name'], product['unit']);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      _deleteProduct(product['id']);
+                    },
+                  ),
+                ],
+              ),
             ),
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreateDialog,
-        child: const Icon(Icons.add),
-        backgroundColor: Colors.blue,
+        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Colors.green,
       ),
     );
   }

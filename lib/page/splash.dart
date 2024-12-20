@@ -10,7 +10,7 @@ class SplashScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.lightBlueAccent,
       body: Center(
-        child:Column(),
+        child: Column(),
       ),
     );
   }
@@ -20,14 +20,16 @@ class SplashScreen extends StatelessWidget {
     String? accessToken = prefs.getString('access_token');
     Future.delayed(Duration(seconds: 1), () {
       if (accessToken != null) {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => HomePage()),
+              (route) => false, // حذف همه صفحات قبلی
         );
       } else {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => LoginPage()),
+              (route) => false, // حذف همه صفحات قبلی
         );
       }
     });

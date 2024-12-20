@@ -44,13 +44,14 @@ class _VerifyPageState extends State<VerifyPage> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('access_token', data['access']);
       await prefs.setString('refresh_token', data['refresh']);
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => HomePage()),
+            (route) => false, // حذف همه صفحات قبلی
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Verification failed!')),
+        SnackBar(content: Text('تاییدیه ناموفق بود!')),
       );
     }
   }
@@ -63,10 +64,7 @@ class _VerifyPageState extends State<VerifyPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.blueAccent, // رنگ پس‌زمینه شاد
-      appBar: AppBar(
-        title: Text('Verify OTP'),
-        backgroundColor: Colors.deepPurple,
-      ),
+
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -83,7 +81,14 @@ class _VerifyPageState extends State<VerifyPage> {
               onPressed: _verifyCode,
               child: _isLoading
                   ? CircularProgressIndicator(color: Colors.white)
-                  : Text('Verify OTP', style: TextStyle(fontSize: 18)),
+                  : Text(
+                'تایید کد یکبار مصرف',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontFamily: 'ProductSans',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(double.infinity, 50), // عرض دکمه
                 shape: RoundedRectangleBorder(
@@ -95,8 +100,12 @@ class _VerifyPageState extends State<VerifyPage> {
             TextButton(
               onPressed: _goBack,
               child: Text(
-                'Back to Login',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+                'بازگشت به صفحه ورود',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontFamily: 'ProductSans', // فونت برای این متن
+                ),
               ),
             ),
           ],

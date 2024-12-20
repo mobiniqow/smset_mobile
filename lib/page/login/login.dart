@@ -43,7 +43,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed!')),
+        SnackBar(content: Text('خطا در اطلاعات وارد شده.')),
       );
     }
   }
@@ -54,12 +54,24 @@ class _LoginPageState extends State<LoginPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Terms & Conditions"),
-          content: Text("Here are the terms and conditions of using the app..."),
+          title: Text(
+            "قوانین و مقررات",
+            style: TextStyle(
+                fontFamily: 'ProductSans', fontWeight: FontWeight.w600),
+          ),
+          content: Text(
+            "این قوانین و مقررات استفاده از اپلیکیشن هستند. لطفاً پیش از استفاده از اپلیکیشن، آنها را با دقت مطالعه کنید. "
+            "ما از اطلاعات شما برای ارسال کد یکبار مصرف استفاده می‌کنیم و شما مسئول حفاظت از شماره تلفن خود خواهید بود. "
+            "با استفاده از این اپلیکیشن، شما موافقت خود را با این قوانین اعلام می‌کنید.",
+            style: TextStyle(fontFamily: 'ProductSans'),
+          ),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Close"),
+              child: Text(
+                "باشه",
+                style: TextStyle(fontFamily: 'ProductSans'),
+              ),
             ),
           ],
         );
@@ -71,10 +83,6 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.blueAccent, // رنگ پس‌زمینه شاد
-      appBar: AppBar(
-        title: Text('Login'),
-        backgroundColor: Colors.deepPurple,
-      ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -84,8 +92,9 @@ class _LoginPageState extends State<LoginPage> {
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
-                labelText: 'Phone Number',
-                labelStyle: TextStyle(color: Colors.white),
+                labelText: 'شماره همراه',
+                labelStyle:
+                    TextStyle(color: Colors.white, fontFamily: 'ProductSans'),
                 focusedBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.deepPurple),
                 ),
@@ -93,14 +102,21 @@ class _LoginPageState extends State<LoginPage> {
                   borderSide: BorderSide(color: Colors.white),
                 ),
               ),
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white, fontFamily: 'ProductSans'),
             ),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _sendLoginRequest,
               child: _isLoading
                   ? CircularProgressIndicator(color: Colors.white)
-                  : Text('Send OTP', style: TextStyle(fontSize: 18)),
+                  : Text(
+                      'ورود',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontFamily: 'ProductSans',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(double.infinity, 50), // عرض دکمه
                 shape: RoundedRectangleBorder(
@@ -112,8 +128,12 @@ class _LoginPageState extends State<LoginPage> {
             TextButton(
               onPressed: _showTermsAndConditions,
               child: Text(
-                'Terms & Conditions',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+                'قوانین و مقررات',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontFamily: 'ProductSans',
+                ),
               ),
             ),
           ],
