@@ -95,7 +95,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
     );
 
     if (response.statusCode == 200) {
-      List data = json.decode(response.body)['results'];
+      List data = jsonDecode(utf8.decode(response.bodyBytes))['results'];
       setState(() {
         _forms.clear();
         _forms.addAll(data.map((e) => e as Map<String, dynamic>).toList());
@@ -105,7 +105,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
       setState(() {
         _isLoading = false;
       });
-      throw Exception('${json.decode(response.body)}');
+      throw Exception('${jsonDecode(utf8.decode(response.bodyBytes))}');
     }
   }
 
@@ -125,7 +125,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
     );
 
     if (response.statusCode == 200) {
-      List data = json.decode(response.body)['results'];
+      List data = jsonDecode(utf8.decode(response.bodyBytes))['results'];
       setState(() {
         _products.clear();
         _products.addAll(data.map((e) => e as Map<String, dynamic>).toList());

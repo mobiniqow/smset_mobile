@@ -44,7 +44,7 @@ class _OrderPageState extends State<OrderPage> {
     );
 
     if (response.statusCode == 200) {
-      List data = json.decode(response.body)['results'];
+      List data = jsonDecode(utf8.decode(response.bodyBytes))['results'];
       setState(() {
         _all_products.clear();
         _all_products.addAll(data.map((e) => e as Map<String, dynamic>).toList());
@@ -82,7 +82,7 @@ class _OrderPageState extends State<OrderPage> {
     );
 
     if (response.statusCode == 200) {
-      List data = json.decode(response.body)['results'];
+      List data = jsonDecode(utf8.decode(response.bodyBytes))['results'];
       setState(() {
         _forms.clear();
         _forms.addAll(data.map((e) => e as Map<String, dynamic>).toList());
@@ -111,7 +111,7 @@ class _OrderPageState extends State<OrderPage> {
     );
 
     if (response.statusCode == 200) {
-      final formData = json.decode(response.body);
+      final formData = jsonDecode(utf8.decode(response.bodyBytes));
       setState(() {
         _products = List<Map<String, dynamic>>.from(formData['items']);
         _isLoadingProducts = false;

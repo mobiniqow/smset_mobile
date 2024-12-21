@@ -34,7 +34,7 @@ class _ProductPageState extends State<ProductPage> {
     );
 
     if (response.statusCode == 200) {
-      List data = json.decode(response.body)['results'];
+      List data = jsonDecode(utf8.decode(response.bodyBytes))['results'];
       _products.clear();
       _products.addAll(data.map((e) => e as Map<String, dynamic>).toList());
     } else {
