@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:share_plus/share_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // برای اشتراک گذاری
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OrderPage extends StatefulWidget {
   const OrderPage({super.key});
@@ -15,9 +15,12 @@ class _OrderPageState extends State<OrderPage> {
   bool _isLoadingForms = false;
   bool _isLoadingProducts = false;
   List<Map<String, dynamic>> _forms = [];
+  List<Map<String, dynamic>> _all_products = [];
+  var _allproduc = {};
   List<Map<String, dynamic>> _products = [];
   String? _selectedFormId;
   Map<String, String> _productQuantities = {}; // برای ذخیره مقادیر محصولات
+  Map<String, TextEditingController> _controllers = {}; // برای ذخیره کنترلرهای مربوط به هر محصول
 
   @override
   void initState() {
@@ -25,6 +28,7 @@ class _OrderPageState extends State<OrderPage> {
     _fetchForms();
     _fetchProducts();
   }
+
   Future<void> _fetchProducts() async {
     setState(() {
       _isLoadingProducts = true;
@@ -42,19 +46,27 @@ class _OrderPageState extends State<OrderPage> {
     if (response.statusCode == 200) {
       List data = json.decode(response.body)['results'];
       setState(() {
-        _products.clear();
-        _products.addAll(data.map((e) => e as Map<String, dynamic>).toList());
+        _all_products.clear();
+        _all_products.addAll(data.map((e) => e as Map<String, dynamic>).toList());
+        print("_all_products $_all_products");
+        for (var item in _all_products) {
+          _allproduc[item['id']] = item;
+        }
         _isLoadingProducts = false;
+
+        // Initialize controllers for each product
+        for (var product in _products) {
+          _controllers[product['id']] = TextEditingController();
+        }
       });
     } else {
       setState(() {
         _isLoadingProducts = false;
       });
-      throw Exception('Failed to fetch products');
+      throw Exception('مشکلی در دریافت اطلاعات محصولات پیش آمده است');
     }
   }
 
-  // Fetch forms from the API
   Future<void> _fetchForms() async {
     setState(() {
       _isLoadingForms = true;
@@ -65,7 +77,7 @@ class _OrderPageState extends State<OrderPage> {
     final response = await http.get(
       Uri.parse('https://smset.ir/product/api/v1/product_forms/'),
       headers: {
-        'Authorization': 'Bearer $accessToken', // برای احراز هویت
+        'Authorization': 'Bearer $accessToken',
       },
     );
 
@@ -80,11 +92,10 @@ class _OrderPageState extends State<OrderPage> {
       setState(() {
         _isLoadingForms = false;
       });
-      throw Exception('Failed to load forms');
+      throw Exception('مشکلی در دریافت فرم‌ها پیش آمده است');
     }
   }
 
-  // Fetch products of a selected form
   Future<void> _fetchProductsForForm(String formId) async {
     setState(() {
       _isLoadingProducts = true;
@@ -92,59 +103,82 @@ class _OrderPageState extends State<OrderPage> {
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessToken = prefs.getString('access_token');
-    print(accessToken);
-    print(formId);
     final response = await http.get(
       Uri.parse('https://smset.ir/product/api/v1/product_forms/$formId/'),
       headers: {
-        'Authorization': 'Bearer $accessToken', // برای احراز هویت
+        'Authorization': 'Bearer $accessToken',
       },
     );
 
     if (response.statusCode == 200) {
-      final formData = json.decode(response.body) ;
+      final formData = json.decode(response.body);
       setState(() {
         _products = List<Map<String, dynamic>>.from(formData['items']);
         _isLoadingProducts = false;
+
+        // Initialize controllers for each product when products are fetched
+        for (var product in _products) {
+          if (!_controllers.containsKey(product['id'])) {
+            _controllers[product['id']] = TextEditingController();
+          }
+        }
       });
     } else {
       setState(() {
         _isLoadingProducts = false;
       });
-      throw Exception('Failed to load products for form');
+      throw Exception('مشکلی در دریافت محصولات برای فرم انتخابی پیش آمده است');
     }
   }
 
   // Share order (form products and quantities)
   void _shareOrder() {
-    String orderSummary = "Order for Form: $_selectedFormId\n\n";
+    print("_forms $_forms");
+    var form_name ="";
+    for(var i in _forms){
+      if (i['id']==_selectedFormId){
+        form_name=i['name'];
+      }
+    }
+    // شروع با نوشتار سفارش و شناسه فرم
+    String orderSummary = "📝 **سفارش برای فرم:** $form_name\n\n";
+
+    // افزودن اطلاعات هر محصول به صورت مرتب و فارسی
     _products.forEach((product) {
       String quantity = _productQuantities[product['id']] ?? '0';
-      orderSummary +=
-      "${product['name']} - Quantity: $quantity ${product['unit']}\n";
+      String productName = _allproduc[product['product']]['name'] ?? 'نامشخص';
+      String productUnit = _allproduc[product['product']]['unit'] ?? 'واحد نامشخص';
+
+      // اضافه کردن اطلاعات محصول به خلاصه سفارش
+      orderSummary += " **محصول:** $productName\n";
+      orderSummary += " **تعداد:** $quantity $productUnit\n";
+      orderSummary += "------------------------\n";
     });
 
-    // Share the order using share_plus
+    // اشتراک‌گذاری پیام
     Share.share(orderSummary);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Order Page")),
+      appBar: AppBar(
+        title: const Text("صفحه سفارش"),
+        backgroundColor: Colors.blue, // رنگ هدر
+      ),
       body: _isLoadingForms
           ? const Center(child: CircularProgressIndicator())
           : Column(
         children: [
-          // Form list (Dropdown to select form)
+          // فرم‌ها (Dropdown برای انتخاب فرم)
           DropdownButton<String>(
-            hint: const Text("Select a Form"),
+            hint: const Text("انتخاب فرم"),
             value: _selectedFormId,
             onChanged: (value) {
               if (value != null) {
                 setState(() {
                   _selectedFormId = value;
-                  _fetchProductsForForm(value); // Load products for selected form
+                  _fetchProductsForForm(value); // بارگذاری محصولات برای فرم انتخاب شده
                 });
               }
             },
@@ -156,7 +190,7 @@ class _OrderPageState extends State<OrderPage> {
             }).toList(),
           ),
           const SizedBox(height: 20),
-          // Show loading if products are being fetched
+          // نمایش بارگذاری در صورت دریافت اطلاعات محصولات
           _isLoadingProducts
               ? const Center(child: CircularProgressIndicator())
               : Expanded(
@@ -165,10 +199,11 @@ class _OrderPageState extends State<OrderPage> {
               itemBuilder: (context, index) {
                 final product = _products[index];
                 final TextEditingController _productQuantityController =
-                TextEditingController();
+                _controllers[product['id']]!;
+
                 return ListTile(
-                  title: Text(product['name']),
-                  subtitle: Text('Unit: ${product['unit']}'),
+                  title: Text(_allproduc[product['product']]['name']),
+                  subtitle: Text('واحد: ${_allproduc[product['product']]['unit']}'),
                   trailing: SizedBox(
                     width: 150,
                     child: Row(
@@ -178,17 +213,15 @@ class _OrderPageState extends State<OrderPage> {
                           width: 70,
                           child: TextField(
                             controller: _productQuantityController,
-                            keyboardType: TextInputType.number,
+                            keyboardType: TextInputType.text, // ورودی آزاد
                             decoration: const InputDecoration(
-                              labelText: 'Quantity',
+                              labelText: 'تعداد',
                               border: OutlineInputBorder(),
                             ),
                             onChanged: (value) {
-                              // Update product quantity
-                              setState(() {
-                                _productQuantities[product['id']] =
-                                    value;
-                              });
+                              // به‌روزرسانی مقدار محصول
+                              _productQuantities[product['id']] = value;
+                              setState(() {});
                             },
                           ),
                         ),
@@ -200,12 +233,12 @@ class _OrderPageState extends State<OrderPage> {
             ),
           ),
           const SizedBox(height: 20),
-          // Share button
+          // دکمه اشتراک‌گذاری
           ElevatedButton(
             onPressed: _selectedFormId == null || _products.isEmpty
                 ? null
                 : _shareOrder,
-            child: const Text("Share Order"),
+            child: const Text("اشتراک گذاری سفارش"),
           ),
         ],
       ),

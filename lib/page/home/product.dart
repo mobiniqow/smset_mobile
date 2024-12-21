@@ -25,6 +25,7 @@ class _ProductPageState extends State<ProductPage> {
     setState(() {
       _isLoading = true;
     });
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessToken = prefs.getString('access_token');
     final response = await http.get(
@@ -36,14 +37,15 @@ class _ProductPageState extends State<ProductPage> {
       List data = json.decode(response.body)['results'];
       _products.clear();
       _products.addAll(data.map((e) => e as Map<String, dynamic>).toList());
-      setState(() {
-        _isLoading = false;
-      });
     } else {
+      throw Exception('Failed to load products');
+    }
+
+    // Check if the widget is still mounted before calling setState
+    if (mounted) {
       setState(() {
         _isLoading = false;
       });
-      throw Exception('Failed to load products');
     }
   }
 

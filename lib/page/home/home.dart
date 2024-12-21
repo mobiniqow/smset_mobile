@@ -37,15 +37,15 @@ class _HomePageState extends State<HomePage> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.add_box),
-            label: 'Form',
+            label: 'فرمها',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_basket),
-            label: 'Product',
+            label: 'محصولات',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.list),
-            label: 'Order',
+            label: 'سفارشات',
           ),
         ],
       ),
